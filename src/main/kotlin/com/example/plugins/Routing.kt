@@ -2,8 +2,10 @@ package com.example.plugins
 
 import com.example.model.*
 import io.ktor.http.*
+import io.ktor.serialization.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -47,6 +49,31 @@ fun Application.configureRouting() {
                     call.respond(tasks)
                 }catch (e: IllegalArgumentException){
                     call.respond(HttpStatusCode.BadRequest)
+                }
+            }
+
+            post {
+                try {
+                    val task = call.receive<Task>()
+                    TaskRepository.addTask(task)
+                    call.respond(HttpStatusCode.NoContent)
+                } catch (ex: IllegalStateException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                } catch (ex: JsonConvertException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+            }
+
+            delete("/{taskName}"){
+                val name = call.parameters["taskName"]
+                if(name == null){
+                    call.respond(HttpStatusCode.NoContent)
+                    return@delete
+                }
+                if(TaskRepository.removeTask(name)){
+                    call.respond(HttpStatusCode.NoContent)
+                }else{
+                    call.respond(HttpStatusCode.NotFound)
                 }
             }
         }
